@@ -15,23 +15,44 @@ public class Main {
 		 
 		Transaction transaction = null; 
 		Session session = null; 
-		 
+		SessionFactory sessionFactory = null;
+		
 		try {
-		SessionFactory sessionFactory = new Configuration().configure().buildSessionFactory();
-		session = sessionFactory.openSession();
-		transaction = session.beginTransaction();
-		SimpleEntity entity = new SimpleEntity("first_property", 14, true);
-		int entityId = (Integer)session.save(entity);
-		SimpleEntity entityFromDb = session.get(SimpleEntity.class, entityId);
-		transaction.commit();
-		System.out.println(entityFromDb.getPropertyOne());
-		}catch (HibernateException | RollbackException | IllegalStateException e){
+			sessionFactory = new Configuration().configure().buildSessionFactory();
+			session = sessionFactory.openSession();
+			transaction = session.beginTransaction();
+			SimpleEntity entity = new SimpleEntity("first_property", 14, true);
+			int entityId = (Integer)session.save(entity);
+			SimpleEntity entityFromDb = session.get(SimpleEntity.class, entityId);
+			transaction.commit();
+			System.out.println(entityFromDb.getPropertyOne());
+		}
+		catch (HibernateException | RollbackException | IllegalStateException e){
 			 if (transaction != null) {
 				 transaction.rollback();
 			 }
-		}finally{
+		}
+		finally{
+			HibernateException exception = new HibernateException("Unable to close resources");
+			
 			if(session != null) {
-				session.close();
+				try {
+					session.close();
+				}catch(HibernateException e) {
+					exception.addSuppressed(e);
+				}	
+			}
+			
+			if(sessionFactory != null) {
+				try {
+					sessionFactory.close();
+				}catch(HibernateException e) {
+					exception.addSuppressed(e);
+				}	
+			}
+			
+			if (exception.getSuppressed().length > 0) {
+				throw exception;
 			}
 		} 
 	 } 
